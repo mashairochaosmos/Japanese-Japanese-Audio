@@ -12,15 +12,23 @@ VOICE_PRESETS = {
     "wavenet_female2": "ja-JP-Wavenet-C",   # 女性（別バリエーション）
     "wavenet_male": "ja-JP-Wavenet-D",      # 男性
     
-    # Neural2: 非常に人間らしく表現力が高い
+    # Neural2: 非常に人間らしく表現力が高い（推奨）
     "neural2_female": "ja-JP-Neural2-B",    # 女性
     "neural2_male": "ja-JP-Neural2-C",      # 男性
+    
+    # Studio: 最高品質の音声（利用可能な場合）
+    "studio_female": "ja-JP-Studio-B",      # 女性（Studioボイス）
+    "studio_male": "ja-JP-Studio-C",        # 男性（Studioボイス）
 }
 
 def synthesize(
     text: str, 
     out_path: str = "output.mp3",
-    voice_name: str = "ja-JP-Wavenet-A"
+    voice_name: str = "neural2_female",
+    speaking_rate: float = 1.0,
+    pitch: float = 0.0,
+    volume_gain_db: float = 0.0,
+    sample_rate_hertz: int = 24000
 ):
     """
     テキストを音声に変換してファイルに保存
@@ -28,8 +36,13 @@ def synthesize(
     Args:
         text: 音声化するテキスト
         out_path: 出力ファイルパス（デフォルト: output.mp3）
-        voice_name: ボイス名（デフォルト: ja-JP-Wavenet-A）
-                    VOICE_PRESETSのキー（例: "wavenet_female"）も使用可能
+        voice_name: ボイス名（デフォルト: neural2_female - 最高品質のNeural2）
+                    VOICE_PRESETSのキー（例: "neural2_female"）も使用可能
+        speaking_rate: 話速（0.25～4.0、デフォルト: 1.0）
+        pitch: ピッチ（-20.0～20.0セミトーン、デフォルト: 0.0）
+        volume_gain_db: 音量ゲイン（-96.0～16.0 dB、デフォルト: 0.0）
+        sample_rate_hertz: サンプリングレート（8000, 16000, 22050, 24000, 32000, 44100, 48000）
+                          デフォルト: 24000（高品質）
     """
     # クライアントを作成（プロジェクトIDは環境変数やgcloudの設定から自動検出される）
     client = texttospeech.TextToSpeechClient()
@@ -48,8 +61,13 @@ def synthesize(
         name=actual_voice_name,
     )
     
+    # 高品質な音声設定
     audio_config = texttospeech.AudioConfig(
-        audio_encoding=texttospeech.AudioEncoding.MP3
+        audio_encoding=texttospeech.AudioEncoding.MP3,
+        speaking_rate=speaking_rate,
+        pitch=pitch,
+        volume_gain_db=volume_gain_db,
+        sample_rate_hertz=sample_rate_hertz,
     )
     
     response = client.synthesize_speech(
@@ -74,11 +92,18 @@ def list_voices():
     print("  wavenet_female   - 女性 (ja-JP-Wavenet-A)")
     print("  wavenet_female2  - 女性 (ja-JP-Wavenet-C)")
     print("  wavenet_male     - 男性 (ja-JP-Wavenet-D)")
-    print("\nNeural2（非常に人間らしい）:")
-    print("  neural2_female   - 女性 (ja-JP-Neural2-B)")
+    print("\nNeural2（非常に人間らしい・推奨）:")
+    print("  neural2_female   - 女性 (ja-JP-Neural2-B) [デフォルト]")
     print("  neural2_male     - 男性 (ja-JP-Neural2-C)")
+    print("\nStudio（最高品質・利用可能な場合）:")
+    print("  studio_female    - 女性 (ja-JP-Studio-B)")
+    print("  studio_male      - 男性 (ja-JP-Studio-C)")
     print("=" * 50)
-    print("\n直接ボイス名を指定することも可能です（例: ja-JP-Wavenet-A）")
+    print("\n直接ボイス名を指定することも可能です（例: ja-JP-Neural2-B）")
+    print("\n音声品質の向上:")
+    print("  - Neural2またはStudioボイスを使用（デフォルト: neural2_female）")
+    print("  - サンプリングレート: 24000Hz以上（デフォルト: 24000Hz）")
+    print("  - 話速、ピッチ、音量を調整可能")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -86,14 +111,20 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 使用例:
-  # 基本的な使用（デフォルト: WaveNet女性）
+  # 基本的な使用（デフォルト: Neural2女性 - 最高品質）
   python main.py --text "こんにちは"
 
-  # ボイスを指定
-  python main.py --text "こんにちは" --voice neural2_female
+  # ボイスを指定（Neural2男性）
+  python main.py --text "こんにちは" --voice neural2_male
+
+  # 高品質設定（高サンプリングレート）
+  python main.py --text "こんにちは" --sample-rate 48000
+
+  # 話速とピッチを調整
+  python main.py --text "こんにちは" --rate 1.1 --pitch 2.0
 
   # 出力ファイル名を指定
-  python main.py --text "こんにちは" --out hello.mp3 --voice wavenet_male
+  python main.py --text "こんにちは" --out hello.mp3 --voice neural2_female
 
   # 利用可能なボイス一覧を表示
   python main.py --list-voices
@@ -117,8 +148,37 @@ if __name__ == "__main__":
     parser.add_argument(
         "--voice", "-v",
         type=str,
-        default="ja-JP-Wavenet-A",
-        help="ボイス名またはプリセット名（デフォルト: ja-JP-Wavenet-A）"
+        default="neural2_female",
+        help="ボイス名またはプリセット名（デフォルト: neural2_female - 最高品質）"
+    )
+    
+    parser.add_argument(
+        "--rate", "-r",
+        type=float,
+        default=1.0,
+        help="話速（0.25～4.0、デフォルト: 1.0）"
+    )
+    
+    parser.add_argument(
+        "--pitch", "-p",
+        type=float,
+        default=0.0,
+        help="ピッチ（-20.0～20.0セミトーン、デフォルト: 0.0）"
+    )
+    
+    parser.add_argument(
+        "--volume", "-vol",
+        type=float,
+        default=0.0,
+        help="音量ゲイン（-96.0～16.0 dB、デフォルト: 0.0）"
+    )
+    
+    parser.add_argument(
+        "--sample-rate", "-sr",
+        type=int,
+        default=24000,
+        choices=[8000, 16000, 22050, 24000, 32000, 44100, 48000],
+        help="サンプリングレート（デフォルト: 24000 - 高品質）"
     )
     
     parser.add_argument(
@@ -135,6 +195,10 @@ if __name__ == "__main__":
         synthesize(
             text=args.text,
             out_path=args.out,
-            voice_name=args.voice
+            voice_name=args.voice,
+            speaking_rate=args.rate,
+            pitch=args.pitch,
+            volume_gain_db=args.volume,
+            sample_rate_hertz=args.sample_rate
         )
 
