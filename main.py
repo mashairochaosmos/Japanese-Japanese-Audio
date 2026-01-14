@@ -7,7 +7,7 @@ GEMINI_TTS_MODELS = {
     "gemini-2.5-flash-preview-tts": "Gemini 2.5 Flash プレビュー（高速・低コスト）",
 }
 
-# Gemini-TTS話者（英語のみ対応、日本語は検証が必要）
+# Gemini-TTS話者（多言語対応、日本語でも使用可能）
 GEMINI_TTS_SPEAKERS = [
     "Acherner", "Akiard", "Algenib", "Algieba", "Alnilam", "Aoede", "Autonoe",
     "Callirhoe", "Charon", "Despina", "Enceladus", "Erinome", "Fenrir",
@@ -15,6 +15,9 @@ GEMINI_TTS_SPEAKERS = [
     "Orus", "Phobos", "Proteus", "Rhea", "Styx", "Tethys", "Thalassa",
     "Thebe", "Titan", "Triton"
 ]
+
+# 日本語用推奨話者
+JAPANESE_RECOMMENDED_SPEAKERS = ["Kore", "Charon", "Callirhoe", "Aoede"]
 
 # よく使う日本語ボイスのプリセット（従来のモデル）
 VOICE_PRESETS = {
@@ -41,7 +44,7 @@ def synthesize(
     out_path: str = "output.mp3",
     voice_name: str = None,
     model_name: str = "gemini-2.5-pro-preview-tts",
-    speaker: str = "Charon",
+    speaker: str = "Kore",
     prompt: str = None,
     language_code: str = "ja-JP",
     speaking_rate: float = 1.0,
@@ -77,7 +80,7 @@ def synthesize(
         # デフォルトプロンプト（日本語用）
         if prompt is None:
             if language_code == "ja-JP":
-                prompt = "自然で親しみやすい日本語で話してください。"
+                prompt = "自然で親しみやすく、明るいトーンで日本語を話してください。"
             else:
                 prompt = "Say the following in a natural and friendly way."
         
@@ -170,7 +173,8 @@ def list_voices():
     print("    - 最も自然で表現力の高い音声")
     print("    - プロンプト例: \"友達とカジュアルに会話するように、親しみやすく話してください\"")
     
-    print("\n【従来のモデル】")
+    print("\n【従来のモデル（非推奨・互換性のため残存）】")
+    print("  ※ Gemini 2.5 Pro TTSが推奨です")
     print("Standard（標準）:")
     print("  standard_female  - 女性 (ja-JP-Standard-A)")
     print("  standard_male    - 男性 (ja-JP-Standard-C)")
@@ -178,19 +182,21 @@ def list_voices():
     print("  wavenet_female   - 女性 (ja-JP-Wavenet-A)")
     print("  wavenet_female2  - 女性 (ja-JP-Wavenet-C)")
     print("  wavenet_male     - 男性 (ja-JP-Wavenet-D)")
-    print("\nNeural2（非常に人間らしい）:")
+    print("\nNeural2（旧モデル）:")
     print("  neural2_female   - 女性 (ja-JP-Neural2-B)")
     print("  neural2_male     - 男性 (ja-JP-Neural2-C)")
-    print("\nStudio（最高品質・利用可能な場合）:")
+    print("\nStudio（利用可能な場合）:")
     print("  studio_female    - 女性 (ja-JP-Studio-B)")
     print("  studio_male      - 男性 (ja-JP-Studio-C)")
     print("=" * 60)
     print("\n使用例:")
-    print("  # Gemini 2.5 Pro TTS（デフォルト・推奨）")
+    print("  # Gemini 2.5 Pro TTS（デフォルト・最高品質・推奨）")
     print("  python main.py --text \"こんにちは\"")
     print("\n  # プロンプトでスタイルを指定")
     print("  python main.py --text \"こんにちは\" --prompt \"親しみやすく、明るいトーンで話してください\"")
-    print("\n  # 従来のモデルを使用")
+    print("\n  # 話者を変更")
+    print("  python main.py --text \"こんにちは\" --speaker Charon")
+    print("\n  # 従来のモデルを使用（非推奨）")
     print("  python main.py --text \"こんにちは\" --model none --voice neural2_female")
 
 if __name__ == "__main__":
@@ -211,7 +217,7 @@ if __name__ == "__main__":
   # Gemini 2.5 Flash TTS（高速・低コスト）
   python main.py --text "こんにちは" --model gemini-2.5-flash-preview-tts
 
-  # 従来のモデルを使用
+  # 従来のモデルを使用（非推奨）
   python main.py --text "こんにちは" --model none --voice neural2_female
 
   # 高品質設定（高サンプリングレート）
@@ -251,8 +257,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--speaker", "-s",
         type=str,
-        default="Charon",
-        help="Gemini-TTS話者名（デフォルト: Charon）"
+        default="Kore",
+        help="Gemini-TTS話者名（デフォルト: Kore - 日本語推奨）"
     )
     
     parser.add_argument(
