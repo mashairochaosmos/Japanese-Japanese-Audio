@@ -122,19 +122,37 @@ def synthesize(
         sample_rate_hertz=sample_rate_hertz,
     )
     
-    response = client.synthesize_speech(
-        input=input_text,
-        voice=voice,
-        audio_config=audio_config,
-    )
+    try:
+        response = client.synthesize_speech(
+            input=input_text,
+            voice=voice,
+            audio_config=audio_config,
+        )
+        
+        with open(out_path, "wb") as f:
+            f.write(response.audio_content)
+        
+        if model_name and model_name in GEMINI_TTS_MODELS:
+            print(f"Saved: {out_path} (Model: {model_name}, Speaker: {speaker})")
+        else:
+            print(f"Saved: {out_path} (Voice: {actual_voice_name})")
     
-    with open(out_path, "wb") as f:
-        f.write(response.audio_content)
-    
-    if model_name and model_name in GEMINI_TTS_MODELS:
-        print(f"Saved: {out_path} (Model: {model_name}, Speaker: {speaker})")
-    else:
-        print(f"Saved: {out_path} (Voice: {actual_voice_name})")
+    except Exception as e:
+        error_msg = str(e)
+        if "Vertex AI API" in error_msg or "aiplatform.googleapis.com" in error_msg:
+            print("\n" + "="*60)
+            print("⚠️  Gemini-TTSを使用するには、Vertex AI APIを有効化する必要があります。")
+            print("="*60)
+            print("\n以下の手順で有効化してください：")
+            print("1. Google Cloud Consoleにアクセス")
+            print("2. Vertex AI APIを有効化:")
+            print("   https://console.cloud.google.com/apis/library/aiplatform.googleapis.com")
+            print("\nまたは、従来のモデルを使用してください：")
+            print("  python main.py --text \"テキスト\" --model none --voice neural2_female")
+            print("="*60)
+        else:
+            print(f"\nエラーが発生しました: {error_msg}")
+        raise
 
 def list_voices():
     """利用可能なボイスプリセットを表示"""
